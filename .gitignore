@@ -1,0 +1,19 @@
+# Large data files
+*.csv
+odds_data.json
+nationality_cache*.json
+odds_page_dump.html
+page_dump.html
+
+# Debug/temp scripts
+check_*.py
+debug_*.py
+fix_*.py
+verify_*.py
+spot_check.py
+final_check.py
+compare_nats.py
+patch_*.py
+
+# Deploy folder (generated)
+deploy/
