@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UFC Fight Database</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#e53333;--red-dim:rgba(229,51,51,0.12);--red-border:rgba(229,51,51,0.25);
+  --teal:#14b8a6;--indigo:#6366f1;--amber:#f59e0b;
+  --bg:#0a0a0f;--border:rgba(255,255,255,0.07);--text:#ccc;--dim:#666;--bright:#fff;
+}
+body{background:var(--bg);color:var(--text);font-family:"Courier New",monospace;min-height:100vh}
+#nav{display:flex;align-items:center;border-bottom:1px solid var(--red-border);background:rgba(0,0,0,0.5);padding:0 32px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.nav-brand{font-family:Georgia,serif;font-weight:900;font-size:16px;color:var(--bright);padding:14px 20px 14px 0;border-right:1px solid var(--border);margin-right:8px}
+.nav-brand span{color:var(--red)}
+.nav-tab{padding:14px 18px;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;cursor:pointer;color:#666;border-bottom:2px solid transparent;transition:all 0.2s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;outline:none}
+.nav-tab:hover{color:#aaa}.nav-tab.active{color:var(--red);border-bottom-color:var(--red)}
+#header{background:linear-gradient(135deg,#150505 0%,var(--bg) 70%);border-bottom:1px solid var(--red-border);padding:24px 32px 20px;position:relative;overflow:hidden}
+#header::before{content:"";position:absolute;top:-80px;right:-80px;width:400px;height:400px;background:radial-gradient(circle,rgba(229,51,51,0.07) 0%,transparent 65%);border-radius:50%;pointer-events:none}
+.eyebrow{font-size:10px;letter-spacing:4px;color:var(--red);text-transform:uppercase;margin-bottom:6px}
+h1{font-size:clamp(26px,3.5vw,48px);font-weight:900;color:var(--bright);letter-spacing:-2px;line-height:1;font-family:Georgia,serif}
+h1 span{color:var(--red)}
+.subtitle{font-size:11px;color:var(--dim);margin-top:5px;letter-spacing:1px}
+.stat-boxes{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.stat-box{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:11px 15px;flex:1 1 95px}
+.stat-box .lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.stat-box .val{font-size:20px;font-weight:900;color:var(--bright);line-height:1}
+.red .lbl{color:var(--red)}.teal .lbl{color:var(--teal)}.amber .lbl{color:var(--amber)}.indigo .lbl{color:var(--indigo)}
+.page{display:none}.page.active{display:block}
+#p-db{display:flex;padding:20px 32px;gap:24px}
+#sidebar{width:230px;flex-shrink:0}
+.fl{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:7px;color:var(--red)}
+.fl.teal{color:var(--teal)}.fl.indigo{color:var(--indigo)}.fl.amber{color:var(--amber)}
+.fg{margin-bottom:14px}
+input[type=text],select{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:7px 9px;color:#ddd;font-size:12px;font-family:inherit;outline:none;cursor:pointer}
+input[type=text]::placeholder{color:#444}
+select option{background:#111}
+.gender-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);margin-bottom:14px}
+.gbtn{flex:1;padding:7px 4px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:inherit;cursor:pointer;border:none;background:rgba(255,255,255,0.03);color:#666;transition:all 0.2s;outline:none}
+.gbtn.a-all{background:var(--red-dim);color:var(--red)}
+.gbtn.a-men{background:rgba(99,102,241,0.15);color:var(--indigo)}
+.gbtn.a-women{background:rgba(20,184,166,0.15);color:var(--teal)}
+.slider-wrap{padding:2px 0 4px}
+.slider-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.slider-vals{font-size:12px;color:var(--bright);font-weight:700}
+.slider-years{display:flex;justify-content:space-between;font-size:10px;color:#444;margin-top:5px}
+.range-container{position:relative;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;margin:10px 0 4px}
+.range-selected{position:absolute;height:100%;background:var(--red);border-radius:2px;pointer-events:none}
+.range-container input[type=range]{position:absolute;top:50%;transform:translateY(-50%);width:100%;height:20px;margin:0;padding:0;-webkit-appearance:none;appearance:none;background:transparent;outline:none;pointer-events:none}
+.range-container input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--red);border:2px solid #0a0a0f;cursor:grab;pointer-events:all;box-shadow:0 0 0 3px rgba(229,51,51,0.2)}
+.range-container input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:2px solid #0a0a0f;background:var(--red);cursor:grab;pointer-events:all}
+.range-container input[type=range]:active::-webkit-slider-thumb{cursor:grabbing}
+.seg-ctrl{display:flex;border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);margin-bottom:8px}
+.seg-btn{flex:1;padding:6px 4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:inherit;cursor:pointer;border:none;background:rgba(255,255,255,0.03);color:#666;transition:all 0.2s;outline:none}
+.seg-btn.active{background:rgba(20,184,166,0.15);color:var(--teal)}
+.origin-sub-label{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:#444;margin-bottom:4px;font-weight:700}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.toggle-label{font-size:12px;color:#aaa}
+.toggle-switch{width:36px;height:20px;background:rgba(255,255,255,0.1);border-radius:10px;position:relative;transition:background 0.2s;flex-shrink:0}
+.toggle-switch.on{background:var(--red)}
+.toggle-knob{width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.2s}
+.toggle-switch.on .toggle-knob{left:19px}
+#clear-btn{width:100%;background:transparent;border:1px solid var(--red-border);color:var(--red);padding:7px;border-radius:7px;cursor:pointer;font-size:11px;letter-spacing:1px;font-family:inherit;margin:14px 0;display:none}
+#clear-btn:hover{background:var(--red-dim)}
+/* MATCHUP BANNER */
+#matchup-banner{display:none;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.02);padding:16px 20px;margin-bottom:14px;position:relative;overflow:hidden}
+#matchup-banner::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(229,51,51,0.04) 0%,transparent 50%,rgba(20,184,166,0.04) 100%);pointer-events:none}
+.mb-inner{display:flex;align-items:center;gap:0;position:relative;z-index:1}
+.mb-side{flex:1;min-width:0}.mb-side.right{text-align:right}
+.mb-name{font-size:15px;font-weight:900;color:var(--bright);font-family:Georgia,serif;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-flag{font-size:20px;display:block;margin-bottom:2px}
+.mb-wins{font-size:22px;font-weight:900;line-height:1}
+.mb-wins.left-col{color:var(--red)}.mb-wins.right-col{color:var(--teal)}
+.mb-sub{font-size:10px;color:#666;letter-spacing:1px;margin-top:1px}
+.mb-winpct{font-size:11px;font-weight:700;margin-top:3px}
+.mb-winpct.left-col{color:var(--red)}.mb-winpct.right-col{color:var(--teal)}
+.mb-center{width:130px;flex-shrink:0;text-align:center;padding:0 14px}
+.mb-record{font-size:11px;color:#666;letter-spacing:1px;margin-bottom:6px;white-space:nowrap}
+.mb-record strong{color:#aaa}
+.mb-bar-track{height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:5px}
+.mb-bar-left{height:100%;float:left;background:var(--red);border-radius:3px 0 0 3px;transition:width 0.6s ease}
+.mb-bar-right{height:100%;float:right;background:var(--teal);border-radius:0 3px 3px 0;transition:width 0.6s ease}
+.mb-total{font-size:10px;color:#444;letter-spacing:1px}
+.mb-total span{color:#666}
+.mb-draw{font-size:9px;background:rgba(255,255,255,0.06);border-radius:4px;padding:2px 6px;color:#666;letter-spacing:1px;margin-top:4px;display:inline-block}
+.mb-crown{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-top:4px;font-weight:700}
+.mb-crown.left-col{color:var(--red)}.mb-crown.right-col{color:var(--teal)}
+.mb-divider{width:1px;background:rgba(255,255,255,0.07);align-self:stretch;margin:0}
+/* TABLE */
+#main{flex:1;min-width:0}
+.tc{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.ti{font-size:12px;color:var(--dim)}.ti span{color:var(--bright)}
+.pag{display:flex;gap:5px;align-items:center}
+.pb{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:12px}
+.pb:hover:not(:disabled){background:rgba(255,255,255,0.1)}.pb:disabled{opacity:0.3;cursor:default}
+.pi{font-size:12px;color:#666}
+.tw{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:rgba(255,255,255,0.03);border-bottom:1px solid var(--red-border)}
+th{padding:10px 11px;text-align:left;white-space:nowrap;font-size:9px;letter-spacing:2px;color:var(--red);text-transform:uppercase;cursor:pointer;user-select:none;font-weight:700;outline:none}
+th:hover{color:#ff6666}.ns{cursor:default!important}.ns:hover{color:var(--red)!important}
+.si{margin-left:3px;opacity:0.3;font-size:8px}th.srt .si{opacity:1}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.1s}
+tbody tr:hover{background:rgba(229,51,51,0.04)}
+td{padding:10px 11px;vertical-align:middle}
+.en{color:#777;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.ed{color:#666;white-space:nowrap;font-size:11px}
+.fc{white-space:nowrap}
+.fn{display:inline}.fn.won{color:var(--bright);font-weight:700}.fn.lost{color:#666}
+.wm{color:var(--red);margin-right:2px;font-size:10px}
+.nc{white-space:nowrap;font-size:13px}
+.nat-txt{font-size:10px;color:#666;margin-left:3px;vertical-align:middle}
+.vs{color:#333;text-align:center;padding:8px 6px}
+.div{color:#666;white-space:nowrap;font-size:11px}
+.ref{color:#666;white-space:nowrap;font-size:11px}
+.tim{color:#666;white-space:nowrap;font-size:11px;text-align:center}
+.mb-badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;white-space:nowrap}
+.ko{background:rgba(239,68,68,0.15);color:#ef4444}
+.su{background:rgba(20,184,166,0.15);color:var(--teal)}
+.de{background:rgba(99,102,241,0.15);color:var(--indigo)}
+.ot{background:rgba(100,100,100,0.12);color:#666}
+.odds-cell{white-space:nowrap;font-size:11px;text-align:center}
+.odds-fav{color:#14b8a6;font-weight:700}.odds-dog{color:#f59e0b;font-weight:700}.odds-none{color:#333}
+.nr{padding:48px;text-align:center;color:#444}
+.pns{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.pn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#666;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:11px;min-width:32px;text-align:center}
+.pn.act{background:var(--red-dim);border-color:var(--red-border);color:var(--red)}
+.pn:hover:not(.act){background:rgba(255,255,255,0.08);color:#aaa}
+/* STATS */
+#p-stats{padding:28px 32px}
+.sf{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.sf-lbl{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;white-space:nowrap}
+.sf select{width:auto;flex:1;min-width:140px;max-width:200px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px}
+.sc{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:14px;padding:22px 24px}
+.sc-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.sc-title.red{color:var(--red)}.sc-title.teal{color:var(--teal)}.sc-title.indigo{color:var(--indigo)}.sc-title.amber{color:var(--amber)}.sc-title.purple{color:#a78bfa}
+.bc-row{margin-bottom:10px}
+.bc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.bc-name{font-size:12px;color:#bbb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;display:flex;align-items:center;gap:5px}
+.bc-val{font-weight:700;font-size:12px;flex-shrink:0;margin-left:8px}
+.bc-track{height:5px;border-radius:3px;background:rgba(255,255,255,0.06)}
+.bc-fill{height:100%;border-radius:3px}
+.donut-wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.dl{display:flex;flex-direction:column;gap:10px}
+.dl-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#bbb}
+.dl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dl-pct{font-weight:700;margin-left:auto;padding-left:12px}
+.year-bars{display:flex;align-items:flex-end;gap:2px;height:80px;margin-top:8px}
+.yb{flex:1;min-width:2px;border-radius:2px 2px 0 0;cursor:pointer;position:relative}
+.yb:hover{opacity:0.75}
+.yb-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid var(--border);padding:4px 7px;border-radius:5px;font-size:10px;color:#fff;white-space:nowrap;pointer-events:none;display:none;z-index:10}
+.yb:hover .yb-tip{display:block}
+.year-labels{display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:#444}
+/* AUTOCOMPLETE */
+.fd-item{padding:8px 11px;cursor:pointer;font-size:12px;color:#ccc;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.fd-item:last-child{border-bottom:none}
+.fd-item:hover,.fd-item.active{background:var(--red-dim);color:#fff}
+.fd-flag{font-size:14px;flex-shrink:0}
+.fd-name{flex:1}
+.fd-nat{font-size:10px;color:#666}
+/* FIGHTER PROFILE */
+#fighter-profile{border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.02);overflow:hidden;position:relative;margin-bottom:14px;display:none}
+.fp-header{display:flex;align-items:center;gap:14px;padding:16px 20px 14px;background:linear-gradient(135deg,rgba(229,51,51,0.08) 0%,transparent 60%);border-bottom:1px solid rgba(255,255,255,0.06)}
+.fp-flag{font-size:32px;line-height:1;flex-shrink:0}
+.fp-identity{flex:1;min-width:0}
+.fp-name{font-size:20px;font-weight:900;color:#fff;font-family:Georgia,serif;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-meta{font-size:10px;color:#666;letter-spacing:1px;margin-top:2px}
+.fp-meta span{color:#888}
+.fp-record{text-align:right;flex-shrink:0}
+.fp-record .wins{font-size:26px;font-weight:900;color:var(--teal);line-height:1}
+.fp-record .losses{font-size:26px;font-weight:900;color:#ef4444;line-height:1}
+.fp-record .sep{font-size:20px;color:#333;margin:0 3px}
+.fp-record .lbl{font-size:9px;letter-spacing:2px;color:#444;text-transform:uppercase;margin-top:2px}
+.fp-close{background:none;border:none;color:#444;font-size:18px;cursor:pointer;padding:0 0 0 10px;flex-shrink:0;line-height:1}
+.fp-close:hover{color:#fff}
+.fp-body{padding:14px 20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fp-section{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:11px 13px}
+.fp-section.full{grid-column:1/-1}
+.fp-sec-title{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+.fp-sec-title.red{color:var(--red)}.fp-sec-title.teal{color:var(--teal)}.fp-sec-title.indigo{color:var(--indigo)}.fp-sec-title.amber{color:var(--amber)}
+.fp-stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px}
+.fp-stat-row:last-child{margin-bottom:0}
+.fp-stat-lbl{color:#666}
+.fp-stat-val{font-weight:700;color:#bbb}
+.fp-stat-val.green{color:var(--teal)}.fp-stat-val.red{color:#ef4444}.fp-stat-val.amber{color:var(--amber)}
+.fp-nat-row{margin-bottom:8px}
+.fp-nat-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.fp-nat-name{font-size:11px;color:#bbb;display:flex;align-items:center;gap:5px}
+.fp-nat-rec{font-size:10px;font-weight:700}
+.fp-nat-track{height:4px;border-radius:2px;background:rgba(255,255,255,0.06)}
+.fp-nat-fill{height:100%;border-radius:2px}
+.fp-form{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.fp-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;flex-shrink:0}
+.fp-dot.W{background:rgba(20,184,166,0.2);color:var(--teal);border:1px solid rgba(20,184,166,0.3)}
+.fp-dot.L{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.fp-dot.NC{background:rgba(255,255,255,0.06);color:#555;border:1px solid rgba(255,255,255,0.08)}
+/* === LOADING === */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.ld-brand{font-family:Georgia,serif;font-size:24px;font-weight:900;color:var(--bright);letter-spacing:-1px}.ld-brand span{color:var(--red)}
+.ld-spin{width:36px;height:36px;border:3px solid rgba(229,51,51,0.2);border-top-color:var(--red);border-radius:50%;animation:spin 0.75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ld-txt{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#444}
+#hamburger{display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#aaa;padding:5px 9px;cursor:pointer;font-size:15px;margin-right:10px;line-height:1;font-family:inherit}
+#hamburger:hover{color:#fff}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:149}
+#sidebar-overlay.open{display:block}
+tbody tr.data-row{cursor:pointer}
+tbody tr.data-row.expanded{background:rgba(229,51,51,0.07)!important}
+tbody tr.data-row.expanded td:first-child{border-left:2px solid var(--red)}
+tbody tr.detail-row td{background:rgba(150,10,10,0.06);border-bottom:1px solid rgba(229,51,51,0.15);padding:0}
+.exp-inner{padding:11px 16px 13px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.exp-grid{display:flex;gap:16px;flex-wrap:wrap;flex:1}
+.exp-item .exp-lbl{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:#444;margin-bottom:2px}
+.exp-item .exp-val{font-size:12px;color:#bbb;font-weight:700}
+.exp-title{display:inline-block;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:var(--amber);font-size:9px;padding:2px 7px;border-radius:4px;letter-spacing:1px;font-weight:700;margin-top:6px}
+.exp-actions{display:flex;gap:7px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.exp-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#999;padding:5px 10px;border-radius:6px;font-size:11px;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:all 0.15s}
+.exp-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+.exp-btn.yt{border-color:rgba(229,51,51,0.3);color:#ef4444}.exp-btn.yt:hover{background:var(--red-dim)}
+.exp-btn.uf{border-color:rgba(20,184,166,0.3);color:var(--teal)}.exp-btn.uf:hover{background:rgba(20,184,166,0.08)}
+.tl-outer{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-top:6px}
+.tl-track{display:flex;gap:2px;align-items:center;min-width:max-content;padding:4px 0 2px;position:relative}
+.tl-track::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,0.05);pointer-events:none}
+.tl-item{display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;z-index:1}
+.tl-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:900;flex-shrink:0}
+.tl-dot.W{background:rgba(20,184,166,0.25);color:var(--teal);border:1px solid rgba(20,184,166,0.4)}
+.tl-dot.L{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.35)}
+.tl-dot.NC{background:rgba(255,255,255,0.06);color:#555;border:1px solid rgba(255,255,255,0.1)}
+.tl-dot.title{box-shadow:0 0 0 2px var(--amber)}
+.tl-yr{font-size:6px;color:#333;white-space:nowrap}
+.tl-tip{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#13131f;border:1px solid rgba(255,255,255,0.12);padding:5px 8px;border-radius:5px;font-size:10px;color:#ddd;white-space:nowrap;pointer-events:none;display:none;z-index:400}
+.tl-item:hover .tl-tip{display:block}
+.upd-stamp{color:#333;margin-left:14px;padding-left:14px;border-left:1px solid rgba(255,255,255,0.07);font-size:10px}
+#page-compare{padding:28px 32px}
+.cmp-row{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
+.cmp-col{flex:1;min-width:180px;max-width:300px;position:relative}
+.cmp-lbl{font-size:9px;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.cmp-vs-badge{font-size:18px;color:#333;font-weight:900;padding-bottom:7px;flex-shrink:0}
+.cmp-go{background:var(--red-dim);border:1px solid var(--red-border);color:var(--red);padding:8px 20px;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;align-self:flex-end;flex-shrink:0}
+.cmp-dd{position:absolute;top:100%;left:0;right:0;z-index:300;background:#111;border:1px solid rgba(255,255,255,0.12);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;display:none}
+.cmp-results{display:none;margin-top:4px}
+.cmp-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.cmp-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px 18px}
+.cmp-card.f1{border-top:2px solid rgba(229,51,51,0.4)}.cmp-card.f2{border-top:2px solid rgba(20,184,166,0.4)}
+.cmp-flag{font-size:22px}.cmp-name{font-size:17px;font-weight:900;font-family:Georgia,serif;color:#fff;margin:4px 0 2px}
+.cmp-rec{font-size:22px;font-weight:900;margin:6px 0 2px}.cmp-rec .w{color:var(--teal)}.cmp-rec .l{color:#ef4444}
+.cmp-sub{font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+.cmp-stat{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04)}
+.cmp-stat .sl{color:#555}.cmp-stat .sv{color:#bbb;font-weight:700}
+.cmp-common{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px 20px}
+.cmp-ctitle{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.cmp-tbl th{text-align:left;padding:4px 8px;font-size:8px;letter-spacing:2px;color:#444;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.06)}
+.cmp-tbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.03)}.cmp-tbl tr:last-child td{border:none}
+.cmp-tbl .cn{color:#aaa;font-weight:700}.rW{color:var(--teal);font-weight:700}.rL{color:#ef4444;font-weight:700}.rN{color:#555}
+.cmp-none{color:#444;font-size:12px;text-align:center;padding:24px}
+@media(max-width:900px){
+  #p-db{flex-direction:column;padding:12px 16px;gap:0}
+  #p-stats{padding:16px}#page-compare{padding:16px}
+  #hamburger{display:inline-block}
+  #nav{padding:0 16px}
+  #sidebar{display:none;position:fixed;top:0;left:0;bottom:0;width:280px;z-index:150;background:#0d0d14;border-right:1px solid var(--red-border);overflow-y:auto;padding:60px 16px 20px}
+  #sidebar.open{display:block}
+  .stat-boxes{gap:6px}.stat-box{padding:8px 10px;flex:1 1 70px}.stat-box .val{font-size:15px}
+  .cmp-cards{grid-template-columns:1fr}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  thead th:first-child,tbody td:first-child{position:sticky;left:0;z-index:2;background:#0a0a0f}
+  thead th:first-child{background:#0d0d14;z-index:3}
+}
+@media(max-width:600px){
+  #fighter-profile{position:fixed;inset:0;top:46px;z-index:140;border-radius:0;overflow-y:auto;margin:0;background:#0a0a0f;border:none;border-top:1px solid var(--red-border)}
+  .fp-body{grid-template-columns:1fr}.fp-section.full{grid-column:auto}
+}
+</style>
+</head>
+<body>
+<div id="loading"><div class="ld-brand">FIGHT <span>DB</span></div><div class="ld-spin"></div><div class="ld-txt">Loading fight data...</div></div>
+<div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+<div id="nav">
+  <button id="hamburger" onclick="toggleMobileSidebar()">&#9776;</button>
+  <div class="nav-brand">FIGHT <span>DB</span></div>
+  <button class="nav-tab active" onclick="showPage('db',this)">Database</button>
+  <button class="nav-tab" onclick="showPage('stats',this)">Stats</button>
+  <button class="nav-tab" onclick="showPage('compare',this)">Compare</button>
+</div>
+</div>
+<div id="header">
+  <div class="eyebrow">Ultimate Fighting Championship</div>
+  <h1>FIGHT <span>DATABASE</span></h1>
+  <div class="subtitle">8,560 fights &middot; 1994&ndash;2026 &middot; 784 events<span class="upd-stamp">Last updated: Feb 25, 2026</span></div>
+  <div class="stat-boxes">
+    <div class="stat-box red"><div class="lbl">Filtered Fights</div><div class="val" id="s-f">—</div></div>
+    <div class="stat-box teal"><div class="lbl">Nations</div><div class="val" id="s-n">—</div></div>
+    <div class="stat-box red"><div class="lbl">KO/TKO Rate</div><div class="val" id="s-k">—</div></div>
+    <div class="stat-box teal"><div class="lbl">Sub Rate</div><div class="val" id="s-s">—</div></div>
+    <div class="stat-box indigo"><div class="lbl">Decision Rate</div><div class="val" id="s-d">—</div></div>
+    <div class="stat-box amber"><div class="lbl">Top Nation</div><div class="val" id="s-tn" style="font-size:13px">—</div></div>
+  </div>
+</div>
+<div id="page-db" class="page active">
+<div id="p-db">
+  <div id="sidebar">
+    <button onclick="closeMobileSidebar()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#555;font-size:20px;cursor:pointer;padding:4px;line-height:1" id="sidebar-close">&times;</button>
+    <div class="fg">
+      <div class="fl">Search</div>
+      <div style="position:relative">
+        <input type="text" id="search" placeholder="Fighter or event..." autocomplete="off">
+        <div id="fighter-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:#111;border:1px solid rgba(255,255,255,0.12);border-top:none;border-radius:0 0 8px 8px;max-height:220px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fl">Gender</div>
+      <div class="gender-toggle">
+        <button class="gbtn a-all" id="gb-all" onclick="setGender('all')">All</button>
+        <button class="gbtn" id="gb-men" onclick="setGender('Men')">Men</button>
+        <button class="gbtn" id="gb-women" onclick="setGender('Women')">Women</button>
+      </div>
+    </div>
+    <div class="fg"><div class="fl">Weight Class</div><select id="f-weight"></select></div>
+    <div class="fg"><div class="fl">Method</div>
+      <select id="f-method">
+        <option value="">All Methods</option><option>KO/TKO</option>
+        <option>Submission</option><option>Decision</option><option>DQ</option>
+      </select>
+    </div>
+    <div class="fg">
+      <div class="fl">Year Range</div>
+      <div class="slider-wrap">
+        <div class="slider-header"><span class="slider-vals"><span id="yr-from">1994</span> — <span id="yr-to">2026</span></span></div>
+        <div class="range-container" id="range-container">
+          <div class="range-selected" id="range-selected"></div>
+          <input type="range" id="yr-min" min="1994" max="2026" value="1994" step="1">
+          <input type="range" id="yr-max" min="1994" max="2026" value="2026" step="1">
+        </div>
+        <div class="slider-years"><span>1994</span><span>2026</span></div>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fl teal">Origin Filter</div>
+      <div class="seg-ctrl">
+        <button class="seg-btn active" id="seg-nat" onclick="setOriginMode('nationality')">Nationality</button>
+        <button class="seg-btn" id="seg-cont" onclick="setOriginMode('continent')">Continent</button>
+      </div>
+      <div id="nat-filters">
+        <div style="margin-bottom:8px"><div class="origin-sub-label">Fighter 1</div><select id="f-nat1"></select></div>
+        <div><div class="origin-sub-label">Fighter 2</div><select id="f-nat2"></select></div>
+      </div>
+      <div id="cont-filters" style="display:none">
+        <div style="margin-bottom:8px"><div class="origin-sub-label">Fighter 1 Continent</div><select id="f-cont1"></select></div>
+        <div><div class="origin-sub-label">Fighter 2 Continent</div><select id="f-cont2"></select></div>
+      </div>
+    </div>
+    <div class="fg"><div class="fl indigo">Referee</div><select id="f-referee"></select></div>
+    <div class="fg">
+      <div class="fl">Title Fights</div>
+      <div class="toggle-row" onclick="toggleTitle()">
+        <span class="toggle-label">Title fights only</span>
+        <div class="toggle-switch" id="title-sw"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+    <button id="clear-btn" onclick="clearFilters()">✕ CLEAR FILTERS</button>
+  </div>
+  <div id="main">
+    <div id="fighter-profile"></div>
+    <div id="matchup-banner">
+      <div class="mb-inner">
+        <div class="mb-side left">
+          <span class="mb-flag" id="mb-flag1"></span>
+          <div class="mb-name" id="mb-name1">—</div>
+          <div class="mb-wins left-col" id="mb-wins1">—</div>
+          <div class="mb-sub">WINS</div>
+          <div class="mb-winpct left-col" id="mb-pct1"></div>
+          <div class="mb-crown left-col" id="mb-crown1"></div>
+        </div>
+        <div class="mb-divider"></div>
+        <div class="mb-center">
+          <div class="mb-record" id="mb-record">— vs —</div>
+          <div class="mb-bar-track">
+            <div class="mb-bar-left" id="mb-bar-l" style="width:50%"></div>
+            <div class="mb-bar-right" id="mb-bar-r" style="width:50%"></div>
+          </div>
+          <div class="mb-total" id="mb-total"><span>0</span> fights</div>
+          <div class="mb-draw" id="mb-draw" style="display:none"></div>
+        </div>
+        <div class="mb-divider"></div>
+        <div class="mb-side right">
+          <span class="mb-flag" id="mb-flag2"></span>
+          <div class="mb-name" id="mb-name2">—</div>
+          <div class="mb-wins right-col" id="mb-wins2">—</div>
+          <div class="mb-sub">WINS</div>
+          <div class="mb-winpct right-col" id="mb-pct2"></div>
+          <div class="mb-crown right-col" id="mb-crown2"></div>
+        </div>
+      </div>
+    </div>
+    <div class="tc">
+      <div class="ti">Showing <span id="ri">—</span> of <span id="ti2">—</span> fights</div>
+      <div class="pag">
+        <button class="pb" id="pp" onclick="changePage(-1)">←</button>
+        <span class="pi" id="pl">1 / 1</span>
+        <button class="pb" id="pn-btn" onclick="changePage(1)">→</button>
+      </div>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('event_name')">Event <span class="si" id="si-event_name">⇅</span></th>
+          <th onclick="sortBy('event_date')">Date <span class="si" id="si-event_date">⇅</span></th>
+          <th onclick="sortBy('fighter1')">Fighter 1 <span class="si" id="si-fighter1">⇅</span></th>
+          <th class="ns">Nat.</th>
+          <th class="ns" style="text-align:center">vs</th>
+          <th onclick="sortBy('fighter2')">Fighter 2 <span class="si" id="si-fighter2">⇅</span></th>
+          <th class="ns">Nat.</th>
+          <th onclick="sortBy('weight_class')">Division <span class="si" id="si-weight_class">⇅</span></th>
+          <th onclick="sortBy('method')">Method <span class="si" id="si-method">⇅</span></th>
+          <th class="ns">Time</th>
+          <th onclick="sortBy('referee')">Referee <span class="si" id="si-referee">⇅</span></th>
+          <th class="ns" title="Opening odds — BetOnline (leftmost book)" style="text-align:center">Odds</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pns" id="pns"></div>
+  </div>
+</div>
+</div>
+<div id="page-stats" class="page">
+<div id="p-stats">
+  <div class="sf">
+    <span class="sf-lbl">Filter:</span>
+    <select id="st-gender" onchange="renderStatsPage()"><option value="">All Genders</option><option value="Men">Men</option><option value="Women">Women</option></select>
+    <select id="st-weight" onchange="renderStatsPage()"><option value="">All Divisions</option></select>
+    <select id="st-era" onchange="renderStatsPage()">
+      <option value="">All Years</option>
+      <option value="1994-1999">1994–1999</option><option value="2000-2004">2000–2004</option>
+      <option value="2005-2009">2005–2009</option><option value="2010-2014">2010–2014</option>
+      <option value="2015-2019">2015–2019</option><option value="2020-2026">2020–2026</option>
+    </select>
+  </div>
+  <div class="stats-grid">
+    <div class="sc"><div class="sc-title red">Finish Breakdown</div>
+      <div class="donut-wrap"><svg width="120" height="120" viewBox="0 0 120 120" id="donut-svg"></svg><div class="dl" id="donut-legend"></div></div>
+    </div>
+    <div class="sc"><div class="sc-title indigo">Fights Per Year</div>
+      <div class="year-bars" id="year-bars"></div><div class="year-labels" id="year-labels"></div>
+    </div>
+    <div class="sc"><div class="sc-title teal">Top Nationalities</div><div id="nation-chart"></div></div>
+    <div class="sc"><div class="sc-title indigo">Top Referees</div><div id="ref-chart"></div></div>
+    <div class="sc"><div class="sc-title amber">Fights by Division</div><div id="div-chart"></div></div>
+    <div class="sc"><div class="sc-title red">KO/TKO Rate by Division</div><div id="ko-div-chart"></div></div>
+    <div class="sc"><div class="sc-title purple">Win Rate by Nationality <span style="font-size:9px;color:#555">(min 20 fights)</span></div><div id="nat-win-chart"></div></div>
+    <div class="sc"><div class="sc-title teal">Top Cross-Nation Matchups</div><div id="h2h-chart"></div></div>
+  </div>
+</div>
+</div>
+<div id="page-compare" class="page">
+  <div style="max-width:900px">
+    <div style="font-size:10px;letter-spacing:4px;color:var(--indigo);text-transform:uppercase;margin-bottom:6px">Fighter Analysis</div>
+    <div style="font-family:Georgia,serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:-1px;margin-bottom:20px">HEAD-TO-HEAD <span style="color:var(--indigo)">COMPARE</span></div>
+    <div class="cmp-row">
+      <div class="cmp-col">
+        <div class="cmp-lbl">Fighter 1</div>
+        <div style="position:relative">
+          <input type="text" id="cmp-f1" placeholder="Search fighter..." autocomplete="off" oninput="cmpDropdown(1)" onblur="setTimeout(()=>hideCmpDd(1),150)" onfocus="cmpDropdown(1)">
+          <div id="cmp-dd1" class="cmp-dd"></div>
+        </div>
+      </div>
+      <div class="cmp-vs-badge">VS</div>
+      <div class="cmp-col">
+        <div class="cmp-lbl">Fighter 2</div>
+        <div style="position:relative">
+          <input type="text" id="cmp-f2" placeholder="Search fighter..." autocomplete="off" oninput="cmpDropdown(2)" onblur="setTimeout(()=>hideCmpDd(2),150)" onfocus="cmpDropdown(2)">
+          <div id="cmp-dd2" class="cmp-dd"></div>
+        </div>
+      </div>
+      <button class="cmp-go" onclick="runCompare()">&#9654; Compare</button>
+    </div>
+    <div id="cmp-results" class="cmp-results">
+      <div class="cmp-cards">
+        <div class="cmp-card f1" id="cmp-card1"></div>
+        <div class="cmp-card f2" id="cmp-card2"></div>
+      </div>
+      <div class="cmp-common">
+        <div class="cmp-ctitle">&#9876; Common Opponents</div>
+        <div id="cmp-common-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleMobileSidebar(){
+  var sb=document.getElementById('sidebar'),ov=document.getElementById('sidebar-overlay');
+  if(sb){sb.classList.toggle('open');}if(ov){ov.classList.toggle('open');}
+}
+function closeMobileSidebar(){
+  var sb=document.getElementById('sidebar'),ov=document.getElementById('sidebar-overlay');
+  if(sb){sb.classList.remove('open');}if(ov){ov.classList.remove('open');}
+}
+const FLAGS={"American": "\ud83c\uddfa\ud83c\uddf8", "Brazilian": "\ud83c\udde7\ud83c\uddf7", "Canadian": "\ud83c\udde8\ud83c\udde6", "Australian": "\ud83c\udde6\ud83c\uddfa", "Russian": "\ud83c\uddf7\ud83c\uddfa", "English": "\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f", "Mexican": "\ud83c\uddf2\ud83c\uddfd", "French": "\ud83c\uddeb\ud83c\uddf7", "Japanese": "\ud83c\uddef\ud83c\uddf5", "Chinese": "\ud83c\udde8\ud83c\uddf3", "Nigerian": "\ud83c\uddf3\ud83c\uddec", "Korean": "\ud83c\uddf0\ud83c\uddf7", "Spanish": "\ud83c\uddea\ud83c\uddf8", "New Zealander": "\ud83c\uddf3\ud83c\uddff", "Swedish": "\ud83c\uddf8\ud83c\uddea", "Irish": "\ud83c\uddee\ud83c\uddea", "Polish": "\ud83c\uddf5\ud83c\uddf1", "Swiss": "\ud83c\udde8\ud83c\udded", "Kazakh": "\ud83c\uddf0\ud83c\uddff", "Finnish": "\ud83c\uddeb\ud83c\uddee", "Georgian": "\ud83c\uddec\ud83c\uddea", "South African": "\ud83c\uddff\ud83c\udde6", "Dutch": "\ud83c\uddf3\ud83c\uddf1", "Italian": "\ud83c\uddee\ud83c\uddf9", "German": "\ud83c\udde9\ud83c\uddea", "Ukrainian": "\ud83c\uddfa\ud83c\udde6", "Belgian": "\ud83c\udde7\ud83c\uddea", "Danish": "\ud83c\udde9\ud83c\uddf0", "Czech": "\ud83c\udde8\ud83c\uddff", "Austrian": "\ud83c\udde6\ud83c\uddf9", "Norwegian": "\ud83c\uddf3\ud83c\uddf4", "Argentine": "\ud83c\udde6\ud83c\uddf7", "Ecuadorian": "\ud83c\uddea\ud83c\udde8", "Venezuelan": "\ud83c\uddfb\ud83c\uddea", "Colombian": "\ud83c\udde8\ud83c\uddf4", "Peruvian": "\ud83c\uddf5\ud83c\uddea", "Cuban": "\ud83c\udde8\ud83c\uddfa", "Surinamese": "\ud83c\uddf8\ud83c\uddf7", "Cape Verdean": "\ud83c\udde8\ud83c\uddfb", "Congolese": "\ud83c\udde8\ud83c\udde9", "Ugandan": "\ud83c\uddfa\ud83c\uddec", "Zimbabwean": "\ud83c\uddff\ud83c\uddfc", "Egyptian": "\ud83c\uddea\ud83c\uddec", "Moroccan": "\ud83c\uddf2\ud83c\udde6", "Tunisian": "\ud83c\uddf9\ud83c\uddf3", "Ghanaian": "\ud83c\uddec\ud83c\udded", "Cameroonian": "\ud83c\udde8\ud83c\uddf2", "Belarusian": "\ud83c\udde7\ud83c\uddfe", "Moldovan": "\ud83c\uddf2\ud83c\udde9", "Armenian": "\ud83c\udde6\ud83c\uddf2", "Azerbaijani": "\ud83c\udde6\ud83c\uddff", "Kyrgyz": "\ud83c\uddf0\ud83c\uddec", "Uzbek": "\ud83c\uddfa\ud83c\uddff", "Tajik": "\ud83c\uddf9\ud83c\uddef", "Afghan": "\ud83c\udde6\ud83c\uddeb", "Iranian": "\ud83c\uddee\ud83c\uddf7", "Israeli": "\ud83c\uddee\ud83c\uddf1", "Turkish": "\ud83c\uddf9\ud83c\uddf7", "Romanian": "\ud83c\uddf7\ud83c\uddf4", "Bulgarian": "\ud83c\udde7\ud83c\uddec", "Croatian": "\ud83c\udded\ud83c\uddf7", "Serbian": "\ud83c\uddf7\ud83c\uddf8", "Bosnian": "\ud83c\udde7\ud83c\udde6", "Macedonian": "\ud83c\uddf2\ud83c\uddf0", "Lithuanian": "\ud83c\uddf1\ud83c\uddf9", "Filipino": "\ud83c\uddf5\ud83c\udded", "Singaporean": "\ud83c\uddf8\ud83c\uddec", "Indian": "\ud83c\uddee\ud83c\uddf3", "Mongolian": "\ud83c\uddf2\ud83c\uddf3", "Panamanian": "\ud83c\uddf5\ud83c\udde6", "Honduran": "\ud83c\udded\ud83c\uddf3", "Chilean": "\ud83c\udde8\ud83c\uddf1", "Welsh": "\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc77\udb40\udc6c\udb40\udc73\udb40\udc7f", "Scottish": "\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f", "Northern Irish": "\ud83c\uddec\ud83c\udde7", "Cypriot": "\ud83c\udde8\ud83c\uddfe", "Portuguese": "\ud83c\uddf5\ud83c\uddf9", "Guyanese": "\ud83c\uddec\ud83c\uddfe", "Slovak": "\ud83c\uddf8\ud83c\uddf0", "Hungarian": "\ud83c\udded\ud83c\uddfa", "Thai": "\ud83c\uddf9\ud83c\udded", "Indonesian": "\ud83c\uddee\ud83c\udde9", "Jamaican": "\ud83c\uddef\ud83c\uddf2"};
+const CONTINENTS={"American": "North America", "Canadian": "North America", "Mexican": "North America", "Honduran": "North America", "Panamanian": "North America", "Cuban": "North America", "Nicaraguan": "North America", "Brazilian": "South America", "Argentine": "South America", "Colombian": "South America", "Peruvian": "South America", "Chilean": "South America", "Ecuadorian": "South America", "Venezuelan": "South America", "Surinamese": "South America", "Guyanese": "South America", "English": "Europe", "Scottish": "Europe", "Welsh": "Europe", "Northern Irish": "Europe", "Irish": "Europe", "French": "Europe", "Dutch": "Europe", "German": "Europe", "Swedish": "Europe", "Norwegian": "Europe", "Danish": "Europe", "Finnish": "Europe", "Swiss": "Europe", "Belgian": "Europe", "Spanish": "Europe", "Portuguese": "Europe", "Italian": "Europe", "Polish": "Europe", "Czech": "Europe", "Slovak": "Europe", "Hungarian": "Europe", "Romanian": "Europe", "Bulgarian": "Europe", "Serbian": "Europe", "Croatian": "Europe", "Bosnian": "Europe", "Macedonian": "Europe", "Lithuanian": "Europe", "Austrian": "Europe", "Moldovan": "Europe", "Belarusian": "Europe", "Ukrainian": "Europe", "Russian": "Europe", "Cypriot": "Europe", "Georgian": "Europe", "Armenian": "Europe", "Azerbaijani": "Europe", "Japanese": "Asia", "Chinese": "Asia", "Korean": "Asia", "Kazakh": "Asia", "Kyrgyz": "Asia", "Uzbek": "Asia", "Tajik": "Asia", "Afghan": "Asia", "Iranian": "Asia", "Israeli": "Asia", "Turkish": "Asia", "Filipino": "Asia", "Singaporean": "Asia", "Indian": "Asia", "Mongolian": "Asia", "Indonesian": "Asia", "Thai": "Asia", "Australian": "Oceania", "New Zealander": "Oceania", "Nigerian": "Africa", "South African": "Africa", "Ghanaian": "Africa", "Cameroonian": "Africa", "Congolese": "Africa", "Ugandan": "Africa", "Zimbabwean": "Africa", "Egyptian": "Africa", "Moroccan": "Africa", "Tunisian": "Africa", "Cape Verdean": "Africa", "Jamaican": "Caribbean"};
+const CONT_ICONS={"North America": "\ud83c\udf0e", "South America": "\ud83c\udf0e", "Europe": "\ud83c\udf0d", "Asia": "\ud83c\udf0f", "Oceania": "\ud83c\udf0f", "Africa": "\ud83c\udf0d", "Caribbean": "\ud83c\udf34"};
+let FIGHTS=[],pageData=[],expandedIdx=-1;
+const MEN_CLASSES=['Heavyweight', 'Light Heavyweight', 'Middleweight', 'Welterweight', 'Lightweight', 'Featherweight', 'Bantamweight', 'Flyweight'];
+const WOMEN_CLASSES=["Women's Bantamweight", "Women's Flyweight", "Women's Strawweight", "Women's Featherweight"];
+const MIN_YEAR=1994,MAX_YEAR=2026,PAGE_SIZE=50;
+let filtered=[...FIGHTS],sortField='event_date',sortDir=-1,curPage=1;
+let genderFilter='all',titleFilter=false,originMode='nationality';
+let profileOpen=false,ddActive=-1;
+
+function flag(n){return n&&FLAGS[n]?FLAGS[n]:'';}
+function cont(n){return n&&CONTINENTS[n]?CONTINENTS[n]:'';}
+function mc(m){return m==='KO/TKO'?'ko':m==='Submission'?'su':(m&&m.startsWith('Decision'))?'de':'ot';}
+function getYear(f){const m=(f.event_date||f.year||'').match(/\d{4}/);return m?parseInt(m[0]):null;}
+
+function showPage(p,btn){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  btn.classList.add('active');
+  if(p==='stats')renderStatsPage();
+}
+
+function setOriginMode(mode){
+  originMode=mode;
+  document.getElementById('seg-nat').classList.toggle('active',mode==='nationality');
+  document.getElementById('seg-cont').classList.toggle('active',mode==='continent');
+  document.getElementById('nat-filters').style.display=mode==='nationality'?'':' none';
+  document.getElementById('cont-filters').style.display=mode==='continent'?'':' none';
+  ['f-nat1','f-nat2','f-cont1','f-cont2'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+}
+
+function updateSlider(){
+  const minEl=document.getElementById('yr-min'),maxEl=document.getElementById('yr-max');
+  let lo=parseInt(minEl.value),hi=parseInt(maxEl.value);
+  if(lo>hi){minEl.value=hi;maxEl.value=lo;[lo,hi]=[hi,lo];}
+  document.getElementById('yr-from').textContent=lo;
+  document.getElementById('yr-to').textContent=hi;
+  const total=MAX_YEAR-MIN_YEAR,pL=(lo-MIN_YEAR)/total*100,pR=(hi-MIN_YEAR)/total*100;
+  const sel=document.getElementById('range-selected');
+  sel.style.left=pL+'%';sel.style.width=(pR-pL)+'%';
+  applyFilters();
+}
+function initSlider(){
+  const minEl=document.getElementById('yr-min'),maxEl=document.getElementById('yr-max');
+  function setZ(){const lo=parseInt(minEl.value),hi=parseInt(maxEl.value),range=MAX_YEAR-MIN_YEAR;const loP=(lo-MIN_YEAR)/range,hiP=(hi-MIN_YEAR)/range;if(Math.abs(loP-hiP)<0.01){minEl.style.zIndex=5;maxEl.style.zIndex=4;}else{minEl.style.zIndex=4;maxEl.style.zIndex=5;}}
+  minEl.addEventListener('input',()=>{updateSlider();setZ();});
+  maxEl.addEventListener('input',()=>{updateSlider();setZ();});
+  setZ();updateSlider();
+}
+function toggleTitle(){titleFilter=!titleFilter;document.getElementById('title-sw').classList.toggle('on',titleFilter);applyFilters();}
+function setGender(g){
+  genderFilter=g;
+  document.getElementById('gb-all').className='gbtn'+(g==='all'?' a-all':'');
+  document.getElementById('gb-men').className='gbtn'+(g==='Men'?' a-men':'');
+  document.getElementById('gb-women').className='gbtn'+(g==='Women'?' a-women':'');
+  populateWeightClasses();document.getElementById('f-weight').value='';applyFilters();
+}
+function populateWeightClasses(){
+  const g=genderFilter;
+  const cls=g==='Men'?[...MEN_CLASSES]:g==='Women'?[...WOMEN_CLASSES]:[...MEN_CLASSES,...WOMEN_CLASSES];
+  document.getElementById('f-weight').innerHTML='<option value="">All Divisions</option>'+cls.map(c=>`<option>${c}</option>`).join('');
+}
+function populateFilters(){
+  populateWeightClasses();
+  document.getElementById('st-weight').innerHTML='<option value="">All Divisions</option>'+[...MEN_CLASSES,...WOMEN_CLASSES].map(c=>`<option>${c}</option>`).join('');
+  const countries=[...new Set(FIGHTS.flatMap(f=>[f.country1,f.country2]).filter(c=>c&&c!=='nan'))].sort();
+  const cO='<option value="">All</option>'+countries.map(c=>`<option value="${c}">${flag(c)?flag(c)+' ':''}${c}</option>`).join('');
+  document.getElementById('f-nat1').innerHTML=cO;
+  document.getElementById('f-nat2').innerHTML=cO;
+  const allConts=[...new Set(Object.values(CONTINENTS))].sort();
+  const coO='<option value="">All</option>'+allConts.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('f-cont1').innerHTML=coO;
+  document.getElementById('f-cont2').innerHTML=coO;
+  const refs=[...new Set(FIGHTS.map(f=>f.referee).filter(r=>r&&r!=='nan'))].sort();
+  document.getElementById('f-referee').innerHTML='<option value="">All</option>'+refs.map(r=>`<option>${r}</option>`).join('');
+  initSlider();
+}
+
+// ── FIGHTER AUTOCOMPLETE ─────────────────────────────────────
+const FIGHTER_NAT={};
+FIGHTS.forEach(f=>{
+  if(f.fighter1&&!FIGHTER_NAT[f.fighter1])FIGHTER_NAT[f.fighter1]=f.country1||'';
+  if(f.fighter2&&!FIGHTER_NAT[f.fighter2])FIGHTER_NAT[f.fighter2]=f.country2||'';
+});
+const FIGHTER_NAMES=Object.keys(FIGHTER_NAT).sort();
+
+function showDropdown(query){
+  const dd=document.getElementById('fighter-dropdown');
+  if(!query||query.length<2){dd.style.display='none';ddActive=-1;return;}
+  const q=query.toLowerCase();
+  const matches=FIGHTER_NAMES.filter(n=>n.toLowerCase().includes(q))
+    .sort((a,b)=>{const as=a.toLowerCase().startsWith(q)?0:1,bs=b.toLowerCase().startsWith(q)?0:1;return as-bs||a.localeCompare(b);})
+    .slice(0,12);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML=matches.map(name=>{
+    const nat=FIGHTER_NAT[name]||'',fl=flag(nat);
+    return`<div class="fd-item" data-name="${name}" onmousedown="selectFighter('${name.replace(/'/g,"\'")}')">
+      <span class="fd-flag">${fl}</span><span class="fd-name">${name}</span><span class="fd-nat">${nat}</span>
+    </div>`;
+  }).join('');
+  dd.style.display='block';ddActive=-1;
+}
+function hideDropdown(){document.getElementById('fighter-dropdown').style.display='none';ddActive=-1;}
+function selectFighter(name){
+  document.getElementById('search').value='';
+  hideDropdown();
+  // Auto-switch to nationality mode and set Fighter 1 to this fighter's nationality
+  const nat=FIGHTER_NAT[name]||'';
+  if(nat){
+    setOriginMode('nationality');
+    document.getElementById('f-nat1').value=nat;
+    document.getElementById('f-nat2').value='';
+  }
+  openFighterProfile(name);
+}
+document.addEventListener('keydown',e=>{
+  const dd=document.getElementById('fighter-dropdown');
+  if(dd.style.display==='none')return;
+  const items=dd.querySelectorAll('.fd-item');
+  if(!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();ddActive=Math.min(ddActive+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('active',i===ddActive));}
+  else if(e.key==='ArrowUp'){e.preventDefault();ddActive=Math.max(ddActive-1,0);items.forEach((el,i)=>el.classList.toggle('active',i===ddActive));}
+  else if(e.key==='Enter'&&ddActive>=0){selectFighter(items[ddActive].dataset.name);}
+  else if(e.key==='Escape'){hideDropdown();}
+});
+
+// ── FIGHTER PROFILE ──────────────────────────────────────────
+function openFighterProfile(name){
+  const allFights=FIGHTS.filter(f=>f.fighter1===name||f.fighter2===name);
+  if(!allFights.length)return;
+  const nat=FIGHTER_NAT[name]||'';
+  const fl=flag(nat);
+  const fights=allFights.map(f=>{
+    const isSelf1=f.fighter1===name;
+    return{opponent:isSelf1?f.fighter2:f.fighter1,oppNat:isSelf1?f.country2:f.country1,
+      won:f.winner===name,lost:f.winner&&f.winner!==name&&f.winner!=='NC'&&f.winner!=='Draw',
+      nc:!f.winner||f.winner==='NC'||f.winner==='Draw',
+      method:f.method,round:f.round,division:f.weight_class,year:f.year,isTitle:f.is_title==='1'};
+  });
+  const W=fights.filter(f=>f.won).length,L=fights.filter(f=>f.lost).length,NC=fights.filter(f=>f.nc).length;
+  const wins=fights.filter(f=>f.won),losses=fights.filter(f=>f.lost);
+  const koW=wins.filter(f=>f.method==='KO/TKO').length,subW=wins.filter(f=>f.method==='Submission').length,decW=wins.filter(f=>f.method&&f.method.startsWith('Decision')).length;
+  const koL=losses.filter(f=>f.method==='KO/TKO').length,subL=losses.filter(f=>f.method==='Submission').length;
+  const divC={};fights.forEach(f=>{if(f.division)divC[f.division]=(divC[f.division]||0)+1;});
+  const mainDiv=Object.entries(divC).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+  const years=fights.map(f=>parseInt(f.year)).filter(Boolean).sort();
+  const career=years.length?`${years[0]}–${years[years.length-1]}`:' —';
+  const total=fights.length;
+  const finishRate=W>0?Math.round((koW+subW)/W*100):0;
+  const winRate=total>0?Math.round(W/total*100):0;
+  const titleFights=fights.filter(f=>f.isTitle).length;
+  const natStats={};
+  fights.forEach(f=>{const n=f.oppNat;if(!n||n==='nan')return;if(!natStats[n])natStats[n]={w:0,l:0,total:0};natStats[n].total++;if(f.won)natStats[n].w++;if(f.lost)natStats[n].l++;});
+  const natEntries=Object.entries(natStats).filter(([n,s])=>s.total>=2).sort((a,b)=>b[1].w/b[1].total-a[1].w/a[1].total);
+  const best5=natEntries.slice(0,5);
+  const worst5=[...natEntries].sort((a,b)=>a[1].w/a[1].total-b[1].w/b[1].total).filter(([n,s])=>s.l>0).slice(0,5);
+  const sorted=[...fights].sort((a,b)=>(parseInt(b.year)||0)-(parseInt(a.year)||0));
+  const recent=sorted.slice(0,8);
+  function natBar(n,s,good){
+    const pct=s.total>0?Math.round(s.w/s.total*100):0,color=good?'#14b8a6':'#ef4444',fl2=flag(n);
+    return`<div class="fp-nat-row"><div class="fp-nat-hdr"><span class="fp-nat-name">${fl2?`<span>${fl2}</span>`:''}${n}</span><span class="fp-nat-rec" style="color:${color}">${s.w}W–${s.l}L</span></div><div class="fp-nat-track"><div class="fp-nat-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+  }
+  const html=`<div class="fp-header">
+    <div class="fp-flag">${fl||'🥊'}</div>
+    <div class="fp-identity">
+      <div class="fp-name">${name}</div>
+      <div class="fp-meta"><span>${nat||'Unknown'}</span> · <span>${mainDiv}</span> · <span>${career}</span>${titleFights>0?` · <span style="color:var(--amber)">🏆 ${titleFights} title fight${titleFights>1?'s':''}</span>`:''}</div>
+    </div>
+    <div class="fp-record">
+      <div><span class="wins">${W}</span><span class="sep">–</span><span class="losses">${L}</span>${NC>0?`<span class="sep" style="font-size:14px">–${NC}</span>`:''}</div>
+      <div class="lbl">W – L${NC>0?' – NC':''}</div>
+    </div>
+    <button class="fp-close" onclick="closeFighterProfile()">✕</button>
+  </div>
+  <div class="fp-body">
+    <div class="fp-section">
+      <div class="fp-sec-title red">Win Methods</div>
+      ${W>0?`<div class="fp-stat-row"><span class="fp-stat-lbl">KO/TKO</span><span class="fp-stat-val green">${koW} <span style="color:#444">(${Math.round(koW/W*100)}%)</span></span></div>
+      <div class="fp-stat-row"><span class="fp-stat-lbl">Submission</span><span class="fp-stat-val green">${subW} <span style="color:#444">(${Math.round(subW/W*100)}%)</span></span></div>
+      <div class="fp-stat-row"><span class="fp-stat-lbl">Decision</span><span class="fp-stat-val">${decW} <span style="color:#444">(${Math.round(decW/W*100)}%)</span></span></div>`
+      :'<div style="color:#444;font-size:11px">No wins recorded</div>'}
+    </div>
+    <div class="fp-section">
+      <div class="fp-sec-title indigo">Career Stats</div>
+      <div class="fp-stat-row"><span class="fp-stat-lbl">Win Rate</span><span class="fp-stat-val ${winRate>=50?'green':'red'}">${winRate}%</span></div>
+      <div class="fp-stat-row"><span class="fp-stat-lbl">Finish Rate</span><span class="fp-stat-val amber">${finishRate}%</span></div>
+      <div class="fp-stat-row"><span class="fp-stat-lbl">KO'd / Subbed</span><span class="fp-stat-val red">${koL} / ${subL}</span></div>
+      <div class="fp-stat-row"><span class="fp-stat-lbl">Total Fights</span><span class="fp-stat-val">${total}</span></div>
+    </div>
+    ${best5.length?`<div class="fp-section"><div class="fp-sec-title teal">Best vs. Nationality <span style="font-size:8px;color:#444">(min 2)</span></div>${best5.map(([n,s])=>natBar(n,s,true)).join('')}</div>`:''}
+    ${worst5.length?`<div class="fp-section"><div class="fp-sec-title red">Toughest Nationalities</div>${worst5.map(([n,s])=>natBar(n,s,false)).join('')}</div>`:''}
+    <div class="fp-section full">
+      <div class="fp-sec-title amber">Recent Form <span style="font-size:8px;color:#444">(newest first)</span></div>
+      <div class="fp-form">${recent.map(f=>{const r=f.won?'W':f.lost?'L':'NC';return`<div class="fp-dot ${r}" title="${r} vs ${f.opponent} · ${f.method||'?'} R${f.round||'?'} · ${f.year||'?'}">${r}</div>`;}).join('')}</div>
+      <div style="font-size:10px;color:#444;margin-top:8px">${recent.slice(0,3).map(f=>{const r=f.won?'W':f.lost?'L':'NC',c=f.won?'var(--teal)':f.lost?'#ef4444':'#555';return`<span style="color:${c};font-weight:700">${r}</span> <span style="color:#666">${f.opponent}</span> <span style="color:#444">(${f.method||'?'}, R${f.round||'?'}) ${f.year||''}</span>  `;}).join('')}</div>
+    </div>
+    <div class="fp-section full">
+      <div class="fp-sec-title teal">Career Timeline</div>
+      <div class="tl-outer"><div class="tl-track">${fights.slice().sort((a,b)=>(parseInt(a.year)||0)-(parseInt(b.year)||0)).map(f=>{
+        const r=f.won?'W':f.lost?'L':'NC';
+        const tc=f.isTitle?' title':'';
+        const tip=`${r} vs ${f.opponent} · ${f.method||'?'} R${f.round||'?'} · ${f.year||'?'}`;
+        return `<div class="tl-item"><div class="tl-dot ${r}${tc}"><span class="tl-tip">${tip}</span>${r}</div><div class="tl-yr">${f.year||''}</div></div>`;
+      }).join('')}</div></div>
+    </div>
+  </div>`;
+  const panel=document.getElementById('fighter-profile');
+  panel.innerHTML=html;panel.style.display='block';profileOpen=true;
+  // Auto-set Fighter 1 nationality filter
+  if(nat&&originMode==='nationality'){
+    document.getElementById('f-nat1').value=nat;
+  } else if(nat&&originMode==='continent'){
+    const c=cont(nat);
+    if(c)document.getElementById('f-cont1').value=c;
+  }
+  document.getElementById('search').value=name;
+  applyFilters();
+}
+function closeFighterProfile(){
+  document.getElementById('fighter-profile').style.display='none';
+  document.getElementById('search').value='';
+  ['f-nat1','f-nat2','f-cont1','f-cont2'].forEach(id=>document.getElementById(id).value='');
+  profileOpen=false;applyFilters();
+}
+
+// ── MATCHUP BANNER ───────────────────────────────────────────
+function renderMatchupBanner(a,b){
+  let winsA=0,winsB=0,draws=0,total=0;
+  filtered.forEach(f=>{
+    const f1g=originMode==='nationality'?f.country1:cont(f.country1);
+    const f2g=originMode==='nationality'?f.country2:cont(f.country2);
+    if(!f.winner||f.winner==='NC'||f.winner==='Draw'){draws++;total++;return;}
+    total++;
+    const winnerGroup=f.winner===f.fighter1?f1g:f2g;
+    if(winnerGroup===a)winsA++;else if(winnerGroup===b)winsB++;
+  });
+  const decisive=winsA+winsB,pctA=decisive>0?Math.round(winsA/decisive*100):50,pctB=100-pctA;
+  const aFlag=originMode==='nationality'?flag(a):(CONT_ICONS[a]||'');
+  const bFlag=originMode==='nationality'?flag(b):(CONT_ICONS[b]||'');
+  document.getElementById('mb-flag1').textContent=aFlag;
+  document.getElementById('mb-flag2').textContent=bFlag;
+  document.getElementById('mb-name1').textContent=a;
+  document.getElementById('mb-name2').textContent=b;
+  document.getElementById('mb-wins1').textContent=winsA;
+  document.getElementById('mb-wins2').textContent=winsB;
+  document.getElementById('mb-pct1').textContent=decisive>0?pctA+'% win rate':'';
+  document.getElementById('mb-pct2').textContent=decisive>0?pctB+'% win rate':'';
+  const c1=document.getElementById('mb-crown1'),c2=document.getElementById('mb-crown2');
+  if(winsA>winsB){c1.textContent='▲ LEADING';c2.textContent='';}
+  else if(winsB>winsA){c1.textContent='';c2.textContent='▲ LEADING';}
+  else{c1.textContent='';c2.textContent='';}
+  document.getElementById('mb-record').innerHTML=`<strong>${winsA}</strong> — <strong>${winsB}</strong>`;
+  document.getElementById('mb-total').innerHTML=`<span>${total.toLocaleString()}</span> fights`;
+  document.getElementById('mb-bar-l').style.width=(decisive>0?pctA:50)+'%';
+  document.getElementById('mb-bar-r').style.width=(decisive>0?pctB:50)+'%';
+  const drawEl=document.getElementById('mb-draw');
+  if(draws>0){drawEl.textContent=`+${draws} NC/Draw`;drawEl.style.display='inline-block';}
+  else drawEl.style.display='none';
+  document.getElementById('matchup-banner').style.display='block';
+}
+function hideBanner(){document.getElementById('matchup-banner').style.display='none';}
+
+// ── APPLY FILTERS ────────────────────────────────────────────
+function applyFilters(){
+  const search=document.getElementById('search').value.toLowerCase().trim();
+  const weight=document.getElementById('f-weight').value;
+  const method=document.getElementById('f-method').value;
+  const referee=document.getElementById('f-referee').value;
+  const lo=Math.min(parseInt(document.getElementById('yr-min').value),parseInt(document.getElementById('yr-max').value));
+  const hi=Math.max(parseInt(document.getElementById('yr-min').value),parseInt(document.getElementById('yr-max').value));
+  let nat1='',nat2='',cont1='',cont2='';
+  if(originMode==='nationality'){nat1=document.getElementById('f-nat1').value;nat2=document.getElementById('f-nat2').value;}
+  else{cont1=document.getElementById('f-cont1').value;cont2=document.getElementById('f-cont2').value;}
+  const hasFilter=search||weight||method||nat1||nat2||cont1||cont2||referee||titleFilter||genderFilter!=='all'||lo>MIN_YEAR||hi<MAX_YEAR;
+  document.getElementById('clear-btn').style.display=hasFilter?'block':'none';
+  filtered=FIGHTS.filter(f=>{
+    if(genderFilter!=='all'&&f.gender!==genderFilter)return false;
+    if(search){
+      const inName=(f.fighter1||'')+' '+(f.fighter2||'')+' '+(f.event_name||'')+' '+(f.event_location||'');
+      if(!inName.toLowerCase().includes(search))return false;
+    }
+    if(weight&&f.weight_class!==weight)return false;
+    if(method){const fm=f.method||'';if(method==='Decision'){if(!fm.startsWith('Decision'))return false;}else if(fm!==method)return false;}
+    if(referee&&f.referee!==referee)return false;
+    if(titleFilter&&f.is_title!=='1')return false;
+    const y=getYear(f);
+    if(y&&(y<lo||y>hi))return false;
+    if(!y&&(lo>MIN_YEAR||hi<MAX_YEAR))return false;
+    if(nat1&&f.country1!==nat1)return false;
+    if(nat2&&f.country2!==nat2)return false;
+    if(cont1&&cont(f.country1)!==cont1)return false;
+    if(cont2&&cont(f.country2)!==cont2)return false;
+    return true;
+  });
+  filtered.sort((a,b)=>{
+    let av=sortField==='event_date'?getYear(a)||0:(a[sortField]||''). toLowerCase();
+    let bv=sortField==='event_date'?getYear(b)||0:(b[sortField]||''). toLowerCase();
+    return av<bv?sortDir:av>bv?-sortDir:0;
+  });
+  const showBanner=(originMode==='nationality'&&nat1&&nat2)||(originMode==='continent'&&cont1&&cont2);
+  if(showBanner)renderMatchupBanner(originMode==='nationality'?nat1:cont1,originMode==='nationality'?nat2:cont2);
+  else hideBanner();
+  curPage=1;renderHeaderStats();renderTable();
+}
+function clearFilters(){
+  document.getElementById('search').value='';
+  ['f-weight','f-method','f-nat1','f-nat2','f-cont1','f-cont2','f-referee'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('yr-min').value=MIN_YEAR;document.getElementById('yr-max').value=MAX_YEAR;
+  titleFilter=false;document.getElementById('title-sw').classList.remove('on');
+  genderFilter='all';
+  document.getElementById('gb-all').className='gbtn a-all';
+  document.getElementById('gb-men').className='gbtn';
+  document.getElementById('gb-women').className='gbtn';
+  if(profileOpen)closeFighterProfile();
+  populateWeightClasses();hideBanner();updateSlider();
+}
+function sortBy(field){
+  if(sortField===field)sortDir*=-1;else{sortField=field;sortDir=-1;}
+  document.querySelectorAll('.si').forEach(el=>{el.textContent='⇅';el.parentElement.classList.remove('srt');});
+  const si=document.getElementById('si-'+field);
+  if(si){si.textContent=sortDir===-1?'▼':'▲';si.parentElement.classList.add('srt');}
+  applyFilters();
+}
+function changePage(d){curPage=Math.max(1,Math.min(Math.ceil(filtered.length/PAGE_SIZE),curPage+d));renderTable();}
+function goToPage(p){curPage=p;renderTable();}
+function renderHeaderStats(){
+  const t=filtered.length,ko=filtered.filter(f=>f.method==='KO/TKO').length,sub=filtered.filter(f=>f.method==='Submission').length,dec=filtered.filter(f=>f.method&&f.method.startsWith('Decision')).length;
+  const nc={};filtered.forEach(f=>{[f.country1,f.country2].forEach(c=>{if(c&&c!=='nan')nc[c]=(nc[c]||0)+1;});});
+  const top=Object.entries(nc).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('s-f').textContent=t.toLocaleString();
+  document.getElementById('s-n').textContent=Object.keys(nc).length;
+  document.getElementById('s-k').textContent=t?Math.round(ko/t*100)+'%':'—';
+  document.getElementById('s-s').textContent=t?Math.round(sub/t*100)+'%':'—';
+  document.getElementById('s-d').textContent=t?Math.round(dec/t*100)+'%':'—';
+  document.getElementById('s-tn').textContent=top?(flag(top[0])+' '+top[0]):'—';
+}
+function oddsDisplay(f){
+  const o1=f.odds1,o2=f.odds2;
+  if(!o1&&!o2)return'<span class="odds-none">—</span>';
+  const fmt=v=>{if(!v||v===''||v==='None')return'—';const n=parseInt(v);return n>0?`+${n}`:String(n);};
+  const v1=o1?parseInt(o1):null,v2=o2?parseInt(o2):null;
+  const c1=v1?v1<0?'odds-fav':'odds-dog':'',c2=v2?v2<0?'odds-fav':'odds-dog':'';
+  return`<span class="${c1}">${fmt(o1)}</span> / <span class="${c2}">${fmt(o2)}</span>`;
+}
+function toggleExpand(i,e){
+  e.stopPropagation();
+  const tb=document.getElementById('tbody');
+  tb.querySelectorAll('.detail-row').forEach(r=>r.remove());
+  tb.querySelectorAll('.data-row').forEach(r=>r.classList.remove('expanded'));
+  if(expandedIdx===i){expandedIdx=-1;return;}
+  expandedIdx=i;
+  const f=pageData[i];if(!f)return;
+  const row=tb.querySelector('.data-row[data-idx="'+i+'"]');if(!row)return;
+  row.classList.add('expanded');
+  const yr=f.year||(f.event_date||'').match(/\d{4}/)?.[0]||'';
+  const ytQ=encodeURIComponent(f.fighter1+' vs '+f.fighter2+' full fight UFC '+yr);
+  const ytUrl='https://www.youtube.com/results?search_query='+ytQ;
+  const detail=document.createElement('tr');
+  detail.className='detail-row';
+  let dhtml='<td colspan="12"><div class="exp-inner"><div class="exp-grid">';
+  dhtml+='<div class="exp-item"><div class="exp-lbl">Method</div><div class="exp-val">'+(f.method||'&mdash;')+'</div></div>';
+  dhtml+='<div class="exp-item"><div class="exp-lbl">Round</div><div class="exp-val">R'+(f.round||'&mdash;')+'</div></div>';
+  dhtml+='<div class="exp-item"><div class="exp-lbl">Time</div><div class="exp-val">'+(f.time||'&mdash;')+'</div></div>';
+  dhtml+='<div class="exp-item"><div class="exp-lbl">Referee</div><div class="exp-val">'+(f.referee||'&mdash;')+'</div></div>';
+  if(f.is_title==='1')dhtml+='<div class="exp-title">&#127942; TITLE FIGHT</div>';
+  dhtml+='</div><div class="exp-actions">';
+  dhtml+='<a class="exp-btn yt" href="'+ytUrl+'" target="_blank" rel="noopener">&#9654; Watch on YouTube</a>';
+  if(f.fight_url)dhtml+='<a class="exp-btn uf" href="'+f.fight_url+'" target="_blank" rel="noopener">&#128202; UFCStats</a>';
+  dhtml+='</div></div></td>';
+  detail.innerHTML=dhtml;
+  row.after(detail);
+}
+function renderTable(){
+  const tot=Math.ceil(filtered.length/PAGE_SIZE),st=(curPage-1)*PAGE_SIZE,en=Math.min(st+PAGE_SIZE,filtered.length);
+  document.getElementById('ri').innerHTML='<span>'+(st+1).toLocaleString()+'&ndash;'+en.toLocaleString()+'</span>';
+  document.getElementById('ti2').innerHTML='<span>'+filtered.length.toLocaleString()+'</span>';
+  document.getElementById('pl').textContent=curPage+' / '+(tot||1);
+  document.getElementById('pp').disabled=curPage<=1;
+  document.getElementById('pn-btn').disabled=curPage>=tot;
+  pageData=filtered.slice(st,en); expandedIdx=-1;
+  const tb=document.getElementById('tbody');
+  if(!pageData.length){tb.innerHTML='<tr><td colspan="12" class="nr">No fights match your filters.</td></tr>';return;}
+  tb.innerHTML=pageData.map(function(f,i){
+    const w1=f.winner===f.fighter1,w2=f.winner===f.fighter2,m=f.method||'&mdash;';
+    const f1f=flag(f.country1),f2f=flag(f.country2);
+    const n1=f1f?f1f+'<span class="nat-txt">'+(f.country1||'—')+'</span>':'<span class="nat-txt" style="color:#555;font-size:10px">'+(f.country1||'—')+'</span>';
+    const n2=f2f?f2f+'<span class="nat-txt">'+(f.country2||'—')+'</span>':'<span class="nat-txt" style="color:#555;font-size:10px">'+(f.country2||'—')+'</span>';
+    const bonus=(f.bonus&&f.bonus!=='nan'&&f.bonus!==''&&f.bonus!=='0')?'&#11088;':'';
+    const titleMark=f.is_title==='1'?'&#127942;':'';
+    let r='<tr class="data-row" data-idx="'+i+'" onclick="toggleExpand('+i+',event)">';
+    r+='<td class="en" title="'+(f.event_name||'').replace(/"/g,'&quot;')+'">'+titleMark+bonus+(f.event_name||'&mdash;')+'</td>';
+    r+='<td class="ed">'+(f.event_date||'&mdash;')+'</td>';
+    r+='<td class="fc"><span class="fn '+(w1?'won':'lost')+'">'+(w1?'<span class="wm">&#9654;</span> ':'')+(f.fighter1||'&mdash;')+'</span></td>';
+    r+='<td class="nc">'+n1+'</td><td class="vs">vs</td>';
+    r+='<td class="fc"><span class="fn '+(w2?'won':'lost')+'">'+(w2?'<span class="wm">&#9654;</span> ':'')+(f.fighter2||'&mdash;')+'</span></td>';
+    r+='<td class="nc">'+n2+'</td>';
+    r+='<td class="div">'+(f.weight_class||'&mdash;')+'</td>';
+    r+='<td><span class="mb-badge '+mc(m)+'">'+m+'</span></td>';
+    r+='<td class="tim">'+(f.time||'&mdash;')+'</td>';
+    r+='<td class="ref">'+(f.referee||'&mdash;')+'</td>';
+    r+='<td class="odds-cell">'+oddsDisplay(f)+'</td>';
+    r+='</tr>';
+    return r;
+  }).join('');
+  const pnsEl=document.getElementById('pns');
+  if(tot<=1){pnsEl.innerHTML='';return;}
+  let nums='';
+  for(let i=1;i<=tot;i++){
+    if(i===1||i===tot||Math.abs(i-curPage)<=3)nums+=`<button class="pn ${i===curPage?'act':''}" onclick="goToPage(${i})">${i}</button>`;
+    else if(Math.abs(i-curPage)===4)nums+='<span style="color:#333;padding:4px 2px;font-size:11px">…</span>';
+  }
+  pnsEl.innerHTML=nums;
+}
+// ── STATS PAGE ───────────────────────────────────────────────
+function getStatsData(){
+  const g=document.getElementById('st-gender').value,w=document.getElementById('st-weight').value,era=document.getElementById('st-era').value;
+  return FIGHTS.filter(f=>{
+    if(g&&f.gender!==g)return false;if(w&&f.weight_class!==w)return false;
+    if(era){const[s,e]=era.split('-').map(Number);const y=getYear(f);if(!y||y<s||y>e)return false;}
+    return true;
+  });
+}
+function barChart(id,entries,color,showFlag=false){
+  const max=entries[0]?.[1]||1;
+  document.getElementById(id).innerHTML=entries.map(([name,val])=>{
+    const fl=showFlag&&flag(name)?`<span style="font-size:13px">${flag(name)}</span>`:'';
+    return`<div class="bc-row"><div class="bc-hdr"><span class="bc-name">${fl}${name}</span><span class="bc-val" style="color:${color}">${val.toLocaleString()}</span></div><div class="bc-track"><div class="bc-fill" style="width:${val/max*100}%;background:${color}"></div></div></div>`;
+  }).join('');
+}
+function renderStatsPage(){
+  const data=getStatsData(),t=data.length;
+  const methods=[['KO/TKO','#ef4444'],['Submission','#14b8a6'],['Decision','#6366f1'],['Other','#555']];
+  const mC=methods.map(([m,c])=>[m,m==='Other'?data.filter(f=>!['KO/TKO','Submission'].includes(f.method||'')&&!(f.method&&f.method.startsWith('Decision'))).length:m==='Decision'?data.filter(f=>f.method&&f.method.startsWith('Decision')).length:data.filter(f=>f.method===m).length,c]);
+  const r=50,cx=60,cy=60,sw=18;let offset=0;
+  const circles=mC.map(([m,cnt,c])=>{
+    const pct=t>0?cnt/t:0,dash=pct*2*Math.PI*r,gap=2*Math.PI*r-dash;
+    const el=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-offset*2*Math.PI*r).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset+=pct;return el;
+  }).join('');
+  document.getElementById('donut-svg').innerHTML=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="${sw}"/>${circles}<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="#fff" font-size="14" font-weight="900" font-family="Courier New">${t.toLocaleString()}</text>`;
+  document.getElementById('donut-legend').innerHTML=mC.map(([m,cnt,c])=>`<div class="dl-row"><div class="dl-dot" style="background:${c}"></div><span>${m}</span><span class="dl-pct" style="color:${c}">${t?Math.round(cnt/t*100):0}%</span></div>`).join('');
+  const yC={};data.forEach(f=>{const y=getYear(f);if(y)yC[y]=(yC[y]||0)+1;});
+  const years=Object.keys(yC).sort(),maxY=Math.max(...Object.values(yC),1);
+  document.getElementById('year-bars').innerHTML=years.map(y=>`<div class="yb" style="height:${Math.max(2,yC[y]/maxY*100)}%;background:var(--indigo);opacity:0.7"><div class="yb-tip">${y}: ${yC[y]}</div></div>`).join('');
+  document.getElementById('year-labels').innerHTML=`<span>${years[0]||''}</span><span>${years[Math.floor(years.length/2)]||''}</span><span>${years[years.length-1]||''}</span>`;
+  const nc={};data.forEach(f=>{[f.country1,f.country2].forEach(c=>{if(c&&c!=='nan')nc[c]=(nc[c]||0)+1;});});
+  barChart('nation-chart',Object.entries(nc).sort((a,b)=>b[1]-a[1]).slice(0,12),'#14b8a6',true);
+  const rc={};data.forEach(f=>{if(f.referee&&f.referee!=='nan')rc[f.referee]=(rc[f.referee]||0)+1;});
+  barChart('ref-chart',Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,10),'#6366f1');
+  const dc={};data.forEach(f=>{if(f.weight_class)dc[f.weight_class]=(dc[f.weight_class]||0)+1;});
+  barChart('div-chart',Object.entries(dc).sort((a,b)=>b[1]-a[1]).slice(0,12),'#f59e0b');
+  const dK={},dT={};
+  data.forEach(f=>{if(!f.weight_class)return;dT[f.weight_class]=(dT[f.weight_class]||0)+1;if(f.method==='KO/TKO')dK[f.weight_class]=(dK[f.weight_class]||0)+1;});
+  const koR=Object.entries(dT).filter(([d,n])=>n>=20).map(([d,n])=>[d,Math.round((dK[d]||0)/n*100)]).sort((a,b)=>b[1]-a[1]);
+  const maxKO=koR[0]?.[1]||1;
+  document.getElementById('ko-div-chart').innerHTML=koR.map(([d,p])=>`<div class="bc-row"><div class="bc-hdr"><span class="bc-name">${d}</span><span class="bc-val" style="color:#ef4444">${p}%</span></div><div class="bc-track"><div class="bc-fill" style="width:${p/maxKO*100}%;background:#ef4444"></div></div></div>`).join('');
+  const nW={},nT={};
+  data.forEach(f=>{
+    if(!f.winner||f.winner==='NC'||f.winner==='Draw')return;
+    [[f.fighter1,f.country1],[f.fighter2,f.country2]].forEach(([fig,nat])=>{
+      if(!nat||nat==='nan')return;nT[nat]=(nT[nat]||0)+1;if(f.winner===fig)nW[nat]=(nW[nat]||0)+1;
+    });
+  });
+  const nWR=Object.entries(nT).filter(([n,c])=>c>=20).map(([n,c])=>[n,Math.round((nW[n]||0)/c*100)]).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const maxWR=nWR[0]?.[1]||1;
+  document.getElementById('nat-win-chart').innerHTML=nWR.map(([n,p])=>`<div class="bc-row"><div class="bc-hdr"><span class="bc-name">${flag(n)?`<span style="font-size:13px">${flag(n)}</span>`:''} ${n}</span><span class="bc-val" style="color:#a78bfa">${p}%</span></div><div class="bc-track"><div class="bc-fill" style="width:${p/maxWR*100}%;background:#a78bfa"></div></div></div>`).join('');
+  const h2h={};
+  data.forEach(f=>{if(!f.country1||!f.country2||f.country1==='nan'||f.country2==='nan'||f.country1===f.country2)return;const key=[f.country1,f.country2].sort().join(' vs ');h2h[key]=(h2h[key]||0)+1;});
+  barChart('h2h-chart',Object.entries(h2h).sort((a,b)=>b[1]-a[1]).slice(0,10),'#14b8a6');
+}
+// -- H2H COMPARE --
+let cmpSelected={'1':'','2':''};
+function cmpDropdown(n){
+  const inp=document.getElementById('cmp-f'+n),dd=document.getElementById('cmp-dd'+n);
+  const q=inp.value.toLowerCase().trim();
+  if(q.length<2){dd.style.display='none';return;}
+  const matches=FIGHTER_NAMES.filter(nm=>nm.toLowerCase().includes(q))
+    .sort((a,b)=>{const as=a.toLowerCase().startsWith(q)?0:1,bs=b.toLowerCase().startsWith(q)?0:1;return as-bs||a.localeCompare(b);})
+    .slice(0,10);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML=matches.map(nm=>{
+    const nat=FIGHTER_NAT[nm]||'',fl=flag(nat);
+    return `<div class="fd-item" onmousedown="pickCmpFighter(${n},this)" data-name="${nm}">${fl?`<span class="fd-flag">${fl}</span>`:''}<span class="fd-name">${nm}</span><span class="fd-nat">${nat}</span></div>`;
+  }).join('');
+  dd.style.display='block';
+}
+function pickCmpFighter(n,el){const name=el.dataset.name;document.getElementById('cmp-f'+n).value=name;cmpSelected[String(n)]=name;hideCmpDd(n);}
+function hideCmpDd(n){document.getElementById('cmp-dd'+n).style.display='none';}
+function openCompareWith(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-compare').classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const ct=[...document.querySelectorAll('.nav-tab')].find(t=>t.textContent.trim()==='Compare');
+  if(ct)ct.classList.add('active');
+  document.getElementById('cmp-f1').value=name;
+  cmpSelected['1']=name;
+}
+function fighterStats(name){
+  const ff=FIGHTS.filter(f=>f.fighter1===name||f.fighter2===name);
+  const fights=ff.map(f=>{
+    const s1=f.fighter1===name;
+    return{opponent:s1?f.fighter2:f.fighter1,won:f.winner===name,
+      lost:f.winner&&f.winner!==name&&f.winner!=='NC'&&f.winner!=='Draw',method:f.method,round:f.round,year:f.year};
+  });
+  const W=fights.filter(x=>x.won).length,L=fights.filter(x=>x.lost).length;
+  const wins=fights.filter(x=>x.won);
+  const koW=wins.filter(x=>x.method==='KO/TKO').length,subW=wins.filter(x=>x.method==='Submission').length;
+  return{name,nat:FIGHTER_NAT[name]||'',W,L,NC:fights.length-W-L,total:fights.length,koW,subW,decW:wins.length-koW-subW,fights};
+}
+function runCompare(){
+  const n1=cmpSelected['1']||document.getElementById('cmp-f1').value.trim();
+  const n2=cmpSelected['2']||document.getElementById('cmp-f2').value.trim();
+  if(!n1||!n2){alert('Please select two fighters');return;}
+  cmpSelected['1']=n1;cmpSelected['2']=n2;
+  const s1=fighterStats(n1),s2=fighterStats(n2);
+  function card(s){
+    const fl=flag(s.nat),wr=s.total?Math.round(s.W/s.total*100):0,fr=s.W?Math.round((s.koW+s.subW)/s.W*100):0;
+    return `<div class="cmp-flag">${fl||''}</div><div class="cmp-name">${s.name}</div>`
+      +`<div class="cmp-rec"><span class="w">${s.W}</span>&ndash;<span class="l">${s.L}</span>${s.NC>0?`<span style="color:#555;font-size:14px">&ndash;${s.NC}</span>`:''}</div>`
+      +`<div class="cmp-sub">W &ndash; L${s.NC?' &ndash; NC':''}</div>`
+      +`<div class="cmp-stat"><span class="sl">Total fights</span><span class="sv">${s.total}</span></div>`
+      +`<div class="cmp-stat"><span class="sl">Win rate</span><span class="sv">${wr}%</span></div>`
+      +`<div class="cmp-stat"><span class="sl">KO/TKO wins</span><span class="sv">${s.koW}</span></div>`
+      +`<div class="cmp-stat"><span class="sl">Submission wins</span><span class="sv">${s.subW}</span></div>`
+      +`<div class="cmp-stat"><span class="sl">Finish rate</span><span class="sv">${fr}%</span></div>`;
+  }
+  document.getElementById('cmp-card1').innerHTML=card(s1);
+  document.getElementById('cmp-card2').innerHTML=card(s2);
+  const opps1=new Set(s1.fights.map(x=>x.opponent));
+  const commonOpps=[...new Set(s2.fights.filter(x=>opps1.has(x.opponent)).map(x=>x.opponent))];
+  if(!commonOpps.length){
+    document.getElementById('cmp-common-body').innerHTML='<div class="cmp-none">No common opponents found.</div>';
+  } else {
+    const rows=commonOpps.map(opp=>{
+      const r1=s1.fights.find(x=>x.opponent===opp),r2=s2.fights.find(x=>x.opponent===opp);
+      const res=r=>`<span class="${r.won?'rW':r.lost?'rL':'rN'}">${r.won?'W':r.lost?'L':'NC'}</span> <span style="color:#555;font-size:10px">${r.method||'?'} R${r.round||'?'}</span>`;
+      return `<tr><td class="cn">${opp}</td><td>${r1?res(r1):'&mdash;'}</td><td>${r2?res(r2):'&mdash;'}</td></tr>`;
+    }).join('');
+    document.getElementById('cmp-common-body').innerHTML=`<table class="cmp-tbl"><thead><tr><th>Opponent</th><th>${n1}</th><th>${n2}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  document.getElementById('cmp-results').style.display='block';
+}
+// -- INIT --
+function initDashboard(){
+  Object.keys(FIGHTER_NAT).forEach(k=>delete FIGHTER_NAT[k]);
+  FIGHTS.forEach(f=>{
+    if(f.fighter1&&!FIGHTER_NAT[f.fighter1])FIGHTER_NAT[f.fighter1]=f.country1||'';
+    if(f.fighter2&&!FIGHTER_NAT[f.fighter2])FIGHTER_NAT[f.fighter2]=f.country2||'';
+  });
+  FIGHTER_NAMES.length=0;
+  Object.keys(FIGHTER_NAT).sort().forEach(n=>FIGHTER_NAMES.push(n));
+  const searchEl=document.getElementById('search');
+  let _ddTimer=null;
+  searchEl.addEventListener('input',()=>{
+    if(profileOpen){closeFighterProfile();return;}
+    applyFilters();
+    clearTimeout(_ddTimer);
+    _ddTimer=setTimeout(()=>showDropdown(searchEl.value),200);
+  });
+  searchEl.addEventListener('focus',()=>{if(!profileOpen&&searchEl.value.length>=2)showDropdown(searchEl.value);});
+  searchEl.addEventListener('blur',()=>setTimeout(hideDropdown,150));
+  ['f-weight','f-method','f-nat1','f-nat2','f-cont1','f-cont2','f-referee'].forEach(id=>
+    document.getElementById(id).addEventListener('change',applyFilters)
+  );
+  const si=document.getElementById('si-event_date');
+  if(si){si.textContent='▼';si.parentElement.classList.add('srt');}
+  populateFilters();
+  applyFilters();
+  const urlFighter=new URLSearchParams(location.search).get('fighter');
+  if(urlFighter){
+    const match=FIGHTER_NAMES.find(n=>n.toLowerCase()===urlFighter.toLowerCase())
+      ||FIGHTER_NAMES.find(n=>n.toLowerCase().includes(urlFighter.toLowerCase()));
+    if(match)setTimeout(()=>openFighterProfile(match),100);
+  }
+  document.getElementById('loading').style.display='none';
+}
+fetch('ufc_fights.json')
+  .then(r=>{if(!r.ok)throw new Error('Failed to load fight data');return r.json();})
+  .then(data=>{FIGHTS=data;filtered=[...FIGHTS];initDashboard();})
+  .catch(err=>{
+    document.getElementById('loading').innerHTML='<div class="ld-brand">FIGHT <span>DB</span></div>'
+      +'<div style="color:#ef4444;margin-top:12px">'+err.message+'</div>'
+      +'<div style="color:#444;font-size:11px;margin-top:8px">Serve via: python -m http.server 8765</div>';
+  });
+</script>
+</body>
+</html>
